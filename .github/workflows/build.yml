@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -23,13 +23,26 @@ jobs:
     - name: Display Python version
       run: python -c "import sys; print(sys.version)"
 
-    - name: Build For Windows
+    - name: Windows dependency
       if: matrix.os == 'windows-latest'
       run: |
         python -m pip install --upgrade pip
         if (Test-Path requirements.txt -PathType leaf) {
           pip install -r requirements.txt
         }
+
+    - name: Mac/Linux dependency
+      if: matrix.os == 'macos-latest' || matrix.os == 'ubuntu-latest'
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+        fi
+      
+    
+    - name: Build
+      if: matrix.os == 'windows-latest'
+      run: |
         pyinstaller -F ssa_hdrify.py
 
     - name: Upload Build Artifact
