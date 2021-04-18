@@ -4,6 +4,8 @@
 
 在播放HDR视频时，由于屏幕会进入HDR，而SSA字幕格式又缺乏对应配置，字幕颜色通常会过饱和与过亮。
 
+如果你播放HDR视频没有类似问题（比如用madVR将HDR tonemap到低亮度显示器），不建议使用这个脚本。
+
 大佬们有[讨论过](https://github.com/libass/libass/issues/297)应对方式，不过在可见的未来不会有什么实质性进展。
 
 短期内最简单的做法就是手工调整字幕的饱和度和亮度，达到不闪瞎狗眼的目的。
@@ -58,3 +60,66 @@
   * 字幕文件，缺失状态下会弹出文件选择窗口。
   
     可通过使用多个-f 添加多个字幕文件。
+
+
+## Background
+
+When playing HDR videos, the display will be put into HDR mode. However, SSA subtitles lack the necessary info needed to be rendered properly in this environment, and as a result tend to be oversaturated and overly bright.
+
+If you do not experience this issue, you do not need this script.
+
+There has been some [discussions](https://github.com/libass/libass/issues/297) on how to extend SSA for this use case, but that seems to have staled, and no change is expected in the foreseeable future.
+
+In the short term, a reasonble patch is to manually edit the colours in the SSA file to make it less blinding.
+
+This script does the following
+
+* Read the SSA file and process all colours used
+* Convert RGB into linear space with BT.709 OETF
+* Map it from sRGB into xyY space
+* Adjust the luminance of the colour, Y
+  * E.g., sRGB's peak brightness will be assumed to be 100nit, and the display 1000 nit, then Y*=0.1
+  * 100 nit and 1000 nit are the default values respectively, and can be modified in CLI
+* Map from CIE xyY into BT2020's RGB space
+  * Can be adjusted to DCI-P3 in CLI
+* Use PQ curve to apply gamma
+* output RGB
+
+Theoretically this is capable for preserving the actual colour of the subtitle. However, because of the complex pipeline of subtitle rendering/blending, and HDR displays in general, the end result is only something to the effect of "red is red and blue is blue". 
+
+It's not suitable for anything that requires colour accuracy, e.g. subtitle colour matching.
+
+## How to use
+
+Download the latest [release](https://github.com/yyymeow/ssaHdrify/releases)
+
+### Simple guide
+
+* Run the program
+* Select your subtitle files (you can select multiple)
+* Modified subtitles will have the extension .hdr.ass
+
+### CLI
+
+The script supports some simple command line options. All arguments are optional.
+
+`ssa_hdrify -s val -o val -c {dcip3,bt2020} -f file1 -f file2 ...`
+
+* `-s --sub-brightness`
+  * Peak brightness for subtitle. Default: 100 nit
+  
+    The important part is the ratio between screen and subtitle brightness.
+	You should only need to change one of them.
+* `-o --output-brightness`
+  * Peak brightness for the display. Default: 1000 nit
+  
+    If the processed subtitle is too bright, increase this value, and vice versa.
+* `-c --colourspace`
+  * Output colourspace, value should be one of dcip3 and bt2020. Default: bt2020
+  
+    Use dcip3 if you prefer slightly more saturated colours.
+	
+* `-f --file`
+  * Subtitle files. A popup will be used if this is missing.
+  
+    You can add multiple files by using multiple -f flags.

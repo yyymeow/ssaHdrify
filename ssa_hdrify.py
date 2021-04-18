@@ -88,7 +88,7 @@ def transformEvent(event):
 
 def ssaProcessor(fname: str):
     if not os.path.isfile(fname):
-        print(f'文件不存在: {fname}')
+        print(f'Missing file: {fname}')
         return
 
     with open(fname, encoding='utf_8_sig') as f:
@@ -107,7 +107,7 @@ def ssaProcessor(fname: str):
 
     with open(output_fname, 'w', encoding='utf_8_sig') as f:
         sub.dump_file(f)
-        print(f'写入 {output_fname}')
+        print(f'Wrote {output_fname}')
 
 
 def parse_args():
