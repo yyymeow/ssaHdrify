@@ -27,7 +27,7 @@ def files_picker() -> list[str]:
 def sRgbToHdr(source: tuple[int, int, int]) -> tuple[int, int, int]:
     """
     大致思路：先做gamma correction，然后转入XYZ。 在xyY内将Y的极值由sRGB亮度调为输出
-    亮度，然后转回2020的RGB。
+    亮度，然后转回输出色域的RGB。
     args:
     colour -- (0-255, 0-255, 0-255)
     """
