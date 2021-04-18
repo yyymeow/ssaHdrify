@@ -24,6 +24,25 @@ def files_picker() -> list[str]:
                                                   ('all files', '.*')])
 
 
+def apply_oetf(source: list[float], luma: float):
+    """
+    args:
+    source: linear RGB tuple (0-1, 0-1, 0-1)
+    luma: luma value for the ORIGINAL sRGB colour.
+    """
+    args = parse_args()
+    pq_result = colour.oetf(source, 'ITU-R BT.2100 PQ')
+    hlg_result = colour.oetf(source, 'ITU-R BT.2100 HLG')
+
+    if args.gamma == 'pq':
+        return pq_result
+    elif args.gamma == 'hlg':
+        return hlg_result
+    else:
+        # linear mix between 0.1 and 0.2
+        pq_mix_ratio = (np.clip(luma, 0.1, 0.2) - 0.1) / 0.1
+        return hlg_result * (1-pq_mix_ratio) + pq_result * pq_mix_ratio
+
 def sRgbToHdr(source: tuple[int, int, int]) -> tuple[int, int, int]:
     """
     大致思路：先做gamma correction，然后转入XYZ。 在xyY内将Y的极值由sRGB亮度调为输出
@@ -47,12 +66,13 @@ def sRgbToHdr(source: tuple[int, int, int]) -> tuple[int, int, int]:
                             D65_ILLUMINANT,
                             RGB_COLOURSPACE_sRGB.matrix_RGB_to_XYZ)
     xyy = colour.XYZ_to_xyY(xyz)
+    srgb_luma = xyy[2]
     xyy[2] = xyy[2] * srgb_brightness / screen_brightness
     xyz = colour.xyY_to_XYZ(xyy)
     output = colour.XYZ_to_RGB(xyz, D65_ILLUMINANT,
                                target_colourspace.whitepoint,
                                target_colourspace.matrix_XYZ_to_RGB)
-    output = colour.oetf(output, 'ITU-R BT.2100 PQ')
+    output = apply_oetf(output, srgb_luma)
     output = np.trunc(output * 255)
     return (int(output[0]), int(output[1]), int(output[2]))
 
@@ -141,6 +161,17 @@ def parse_args():
                         type=str,
                         help=('输入字幕文件。可重复添加。'),
                         action='append')
+
+    parser.add_argument('-g',
+                        '--gamma',
+                        metavar='{pq,hlg,hybrid}',
+                        type=str,
+                        help=('选择输出时使用的gamma函数。可用值为  (默认: %(default)s)\n'
+                              'pq: 大部分视频均使用pq压制，但hybrid字幕效果可能更好\n'
+                              'hlg: 视频为hlg时应使用hlg模式\n'
+                              'hybrid: 实验性。在纯pq时容易导致低亮度字幕过亮，hybrid模式在低亮度时使用hlg，'
+                              '高亮度时使用pq。\n'),
+                        default='pq')
 
     args = parser.parse_args()
 
