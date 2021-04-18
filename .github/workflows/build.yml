@@ -1,0 +1,25 @@
+name: Build-dist
+
+on:
+  push:
+    paths:
+    - '**.py'
+    - '**.yml'
+  pull_request:
+    paths:
+    - '**.py'
+    - '**.yml'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set Up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.8
