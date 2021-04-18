@@ -1,0 +1,4 @@
+ass
+numpy
+colour-science
+pyinstaller
